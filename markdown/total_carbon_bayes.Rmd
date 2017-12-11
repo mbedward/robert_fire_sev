@@ -422,3 +422,61 @@ ggplot(data = x) +
 
 ```
 
+
+## Tabulate differences from LH
+
+As requested by Robert for the thesis chapter: summary statistics (mean, median and 95% credible interval) of differences between LH and other severity combinations for upper soil depth across all three micro-sites.
+
+Differences expressed as percent carbon:
+
+```{r}
+
+library(tidyr)
+
+dat <- M.predicted %>%
+  gather(rep, value, -c(depth, microsite, severity)) %>%
+  filter(depth == "0-5cm") %>%
+  spread(severity, value) %>%
+
+  mutate(LH_LL = LH - LL,
+         LH_HL = LH - HL,
+         LH_HH = LH - HH) %>%
+  
+  select(LH_LL, LH_HL, LH_HH) %>%
+  
+  gather(diff, value, c(LH_LL, LH_HL, LH_HH))
+
+
+dat.stats <- dat %>%
+  group_by(diff) %>%
+  
+  do({
+    q <- quantile(.$value, c(0.025, 0.5, 0.975))
+    mu <- mean(.$value)
+    data.frame(lwr = q[1], mean = mu, median = q[2], upr = q[3])
+  })
+
+knitr::kable(dat.stats, digits = 2, caption = "Differences %C")
+
+```
+
+Differences expressed as tonnes/hectare (Mg/ha), calculated as percent differences x average bulk density (0.9) x soil depth in centimetres (5):
+
+```{r}
+
+dat.stats.Mg.ha <- dat %>%
+  mutate(value = value * 0.9 * 5) %>%
+
+  group_by(diff) %>%
+  
+  do({
+    q <- quantile(.$value, c(0.025, 0.5, 0.975))
+    mu <- mean(.$value)
+    data.frame(lwr = q[1], mean = mu, median = q[2], upr = q[3])
+  })
+  
+
+knitr::kable(dat.stats.Mg.ha, digits = 2, caption = "Differences Mg/ha")
+
+```
+
